@@ -46,7 +46,11 @@ import System.Process      (runProcess, waitForProcess)
 import System.IO           (openFile, hClose, IOMode(..),
                             hSetBuffering, BufferMode(..), stdout)
 import System.Exit         (ExitCode(..))
+#if __GLASGOW_HASKELL__ < 706
 import System.Time         (ClockTime, getClockTime)
+#else
+import Data.Time.Clock     (UTCTime, getCurrentTime)
+#endif
 import Control.Concurrent  (threadDelay)
 import Control.Exception   (catch, SomeException(..), bracket)
 
@@ -215,7 +219,11 @@ indexize nDigits i opts = opts { output = output' }
         (base, ext) = splitExtension (output opts)
 
 #ifdef CMDLINELOOP
+#if __GLASGOW_HASKELL__ < 706
 waitForChange :: Maybe ClockTime -> DiagramOpts -> String -> [String] -> IO ()
+#else
+waitForChange :: Maybe UTCTime -> DiagramOpts -> String -> [String] -> IO ()
+#endif
 waitForChange lastAttempt opts prog args = do
     hSetBuffering stdout NoBuffering
     go lastAttempt
@@ -235,7 +243,11 @@ waitForChange lastAttempt opts prog args = do
 --   of this attempt.  Otherwise (if nothing has changed since the
 --   last attempt), return @Nothing@.  Also return a Bool saying
 --   whether a successful recompilation happened.
+#if __GLASGOW_HASKELL__ < 706
 recompile :: Maybe ClockTime -> String -> Maybe String -> IO (Bool, Maybe ClockTime)
+#else
+recompile :: Maybe UTCTime -> String -> Maybe String -> IO (Bool, Maybe UTCTime)
+#endif
 recompile lastAttempt prog mSrc = do
   let errFile = prog ++ ".errors"
       srcFile = fromMaybe (prog ++ ".hs") mSrc
@@ -252,7 +264,11 @@ recompile lastAttempt prog mSrc = do
         then putStrLn "" >> putStrLn (replicate 75 '-') >> readFile errFile >>= putStr
         else putStrLn "done."
 
+#if __GLASGOW_HASKELL__ < 706
       curTime <- getClockTime
+#else
+      curTime <- getCurrentTime
+#endif
       return (status == ExitSuccess, Just curTime)
 
     else return (False, Nothing)
